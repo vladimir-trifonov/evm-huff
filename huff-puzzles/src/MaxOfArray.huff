@@ -1,0 +1,94 @@
+
+/** 
+ *  MAX_OF_ARRAY HUFF EXERCISE
+ *  
+ *  In this task, Given an abi encoded array of uint256, return its maximum value. Revert if the array is empty.
+ *
+ *  NOTICE: The contract should revert when an unrecognized function is called
+ */
+
+#define function maxOfArray(uint256[]) payable returns(uint256)
+
+#define macro UINT_MAX() = takes(0) returns(1) {
+    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+}
+
+#define macro SUB1() = takes(1) returns(1) {
+   UINT_MAX()
+   add
+}
+
+#define macro ITEM_OFFSET() = takes(1) returns (1) {
+    // [index]
+    0x05 shl  // [index * 32]
+    0x40 add
+}
+
+#define macro GET_ITEM() = takes(1) returns (1) {
+    // [index]
+    ITEM_OFFSET()
+    mload // [item]
+}
+
+#define macro MAX_OF_ARRAY() = takes (0) returns (0) {
+  // Store array in memory
+  calldatasize
+  0x04 0x00 // [memTo, calldataFrom, numBytes]
+  calldatacopy
+  0x20 mload // [length]
+
+  dup1 iszero return_revert jumpi
+  dup1 0x02 gt return_first jumpi
+
+  SUB1()  // [index] (length - 1)
+  0x00  // [max, index]
+  dup2 // [index, max, index]
+
+  max jump
+
+  max:
+    UINT_MAX() eq return_max jumpi
+    dup2 // [index, max, index]
+    GET_ITEM() // [item, max, index]
+    dup1 // [item, item, max, index]
+    dup3 // [max, item, item, max, index]
+    swap1 // [item, max, item, max, index]
+    gt swap_max jumpi
+    pop
+    dec_index jump
+
+  dec_index:
+    swap1 // [index, max]
+    SUB1() // [index - 1, max]
+    swap1 // [max, index - 1]
+    dup2 // [index - 1, max, index - 1]
+    max jump
+  
+  swap_max:
+    swap1
+    pop
+    dec_index jump
+
+  return_max:
+    0x00 mstore
+    0x20 0x00 return
+
+  return_first:
+    0x00
+    GET_ITEM()
+    0x00 mstore
+    0x20 0x00 return
+  
+  return_revert:
+    0x00 0x00 revert
+}
+
+#define macro MAIN() = takes(0) returns(0) {
+  0x00 calldataload 0xE0 shr
+  dup1 __FUNC_SIG(maxOfArray) eq maxOfArray jumpi
+
+  0x00 0x00 revert
+
+  maxOfArray:
+      MAX_OF_ARRAY()
+}
